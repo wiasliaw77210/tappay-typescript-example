@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://js.tappaysdk.com/tpdirect/v5.1.0"></script>
+    <script>
+      TPDirect.setupSDK(
+        11327,
+        'app_whdEWBH8e8Lzy4N6BysVRRMILYORF6UxXbiOFsICkz0J9j1C0JUlCHv1tVJC',
+        'sandbox'
+      );
+    </script>
+    <title>TapPayService Example</title>
+    <style>
+      html,
+      body {
+        box-sizing: border-box;
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+      }
+      #form {
+        width: 300px;
+        height: 500px;
+        border: 1px black solid;
+        border-radius: 10px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="form">
+      <div style="display: flex; align-items: center; flex-direction: column;">
+        <h1>Card Display</h1>
+        <div id="cardview-container" style="width: 100%;"></div>
+        <div id="message"></div>
+      </div>
+      <button id="submit">Submit</button>
+    </form>
+    <script>
+      const message = document.querySelector('#message');
+
+      const submitButton = document.querySelector('#submit');
+
+      const defaultCardViewStyle = {
+        color: 'rgb(0,0,0)',
+        fontSize: '15px',
+        lineHeight: '24px',
+        fontWeight: '300',
+        errorColor: 'red',
+        placeholderColor: '',
+      };
+
+      TPDirect.card.setup('#cardview-container', defaultCardViewStyle);
+
+      TPDirect.card.onUpdate(function (update) {
+        // check if submitable
+        if (update.canGetPrime) {
+          submitButton.removeAttribute('disabled');
+        } else {
+          submitButton.setAttribute('disabled', true);
+        }
+        // add message
+        if (update.canGetPrime) {
+          message.textContent = '填寫正確';
+        } else if (update.status.number !== 0 || update.status.number !== 3) {
+          message.textContent =
+            update.status.number === 1 ? '卡號沒寫' : '卡號有誤';
+        } else if (update.status.expiry !== 0 || update.status.expiry !== 3) {
+          message.textContent =
+            update.status.expiry === 1 ? '日期沒寫' : '日期有誤';
+        } else if (update.status.cvc !== 0 || update.status.cvc !== 3) {
+          message.textContent =
+            update.status.cvc === 1 ? 'cvc沒寫' : 'cvc有誤';
+        }
+      });
+
+      submitButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        TPDirect.card.getPrime(function (result) {
+          const xmlhttp = new XMLHttpRequest();
+          xmlhttp.open('POST', '/pay');
+          xmlhttp.setRequestHeader(
+            'Content-Type',
+            'application/json;charset=UTF-8'
+          );
+          xmlhttp.send(JSON.stringify({ prime: result.card.prime }));
+          xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState == XMLHttpRequest.DONE) {
+              let rec_trade_id = JSON.parse(xmlhttp.responseText).rec_trade_id;
+              alert(rec_trade_id);
+            }
+          };
+        });
+      });
+    </script>
+  </body>
+</html>
